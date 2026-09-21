@@ -2,12 +2,12 @@
 
 This repository is the public, reproducible source for CoMPhy Lab QR artwork,
 useful links, and downloadable logo files. Its privacy-filtered inventory covers
-70 codes: 69 observed in the source account plus one added public static paper
-code, comprising 14 active dynamic codes, four paused dynamic codes, and 52
+71 codes: 69 observed in the source account plus two added public static
+codes, comprising 14 active dynamic codes, four paused dynamic codes, and 53
 static codes. Private targets are counted but redacted.
 
 Browse the [download catalogue](https://comphy-lab.org/qr-codes/) for SVG
-and PNG copies of all 64 public, non-paused account codes and the lab and
+and PNG copies of all 65 public, non-paused account codes and the lab and
 university logos. The four [standalone branded codes](current/) also include
 SVG and PNG.
 

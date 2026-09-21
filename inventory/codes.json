@@ -453,6 +453,20 @@
       "migration_status": "direct-static"
     },
     {
+      "id": "90011061",
+      "slug": "elastic-pinch-off",
+      "name": "Elastic pinch-off",
+      "folder": "codes",
+      "source_kind": "static",
+      "source_status": "static",
+      "content_type": "website",
+      "visibility": "public",
+      "source_short_url": null,
+      "destination": "https://github.com/comphy-lab/ElasticPinchOff",
+      "qr_payload": "https://github.com/comphy-lab/ElasticPinchOff",
+      "migration_status": "direct-static"
+    },
+    {
       "id": "75143090",
       "slug": "cfd",
       "name": "CFD",

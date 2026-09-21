@@ -27,12 +27,12 @@ class InventoryTests(unittest.TestCase):
         self.assertEqual(validate_inventory(inventory), [])
         self.assertIs(require_valid_inventory(inventory), inventory)
 
-    def test_requires_exactly_70_unique_ids_and_slugs(self) -> None:
+    def test_requires_exactly_71_unique_ids_and_slugs(self) -> None:
         inventory = valid_inventory()
         inventory["codes"].pop()
         inventory["codes"][1]["id"] = inventory["codes"][0]["id"]
         inventory["codes"][1]["slug"] = inventory["codes"][0]["slug"]
-        self.assert_error_contains(inventory, "expected exactly 70")
+        self.assert_error_contains(inventory, "expected exactly 71")
         self.assert_error_contains(inventory, "duplicate of codes[0].id")
         self.assert_error_contains(inventory, "duplicate of codes[0].slug")
 
