@@ -6,9 +6,11 @@ useful links, and downloadable logo files. Its privacy-filtered inventory covers
 codes, comprising 14 active dynamic codes, four paused dynamic codes, and 53
 static codes. Private targets are counted but redacted.
 
-Browse the [download catalogue](https://comphy-lab.org/qr-codes/) for SVG
-and PNG copies of all 65 public, non-paused account codes and the lab and
-university logos. The four [standalone branded codes](current/) also include
+Browse the [download catalogue](https://comphy-lab.org/qr-codes/) for SVG,
+PNG, and PDF copies of all 65 public, non-paused account codes and the lab and
+university logos. Every one of those codes also has a landing page at
+`https://comphy-lab.org/qr-codes/{slug}/` with the QR and the three downloads.
+The four [standalone branded codes](current/) also include
 SVG and PNG.
 
 The contact-card replacement is
@@ -41,10 +43,10 @@ SVG is available. The generator copies these files unchanged to
 - `scripts/`: inventory validation, deterministic generation, and deployment
   checks.
 - `requirements-lock.txt`: complete, hashed Python dependencies.
-- `current/account/`: generated replacements for public account codes.
+- `current/account/`: generated SVG, PNG, and PDF replacements for public account codes.
 - `current/`: standalone branded QR codes in SVG and PNG.
 - `assets/logos/`: original downloadable logo files.
-- `site/`: generated catalogue, landing pages, QR artwork, and logo downloads.
+- `site/`: generated catalogue, per-slug landing pages, QR artwork, and logo downloads.
 - `legacy/`: preserved historic SVG artwork.
 - `DESIGN.md`: QR design and migration rules.
 
@@ -58,7 +60,10 @@ python3 -m unittest discover -v
 ```
 
 Run `python3 scripts/generate.py` after changing the inventory or generated
-catalogue. Do not hand-edit `current/account/` or `site/`. The standalone
+catalogue. Do not hand-edit `current/account/` or `site/`. Add a new QR by
+adding one public, non-paused inventory entry and running that generator; it
+writes `current/account/{slug}.{svg,png,pdf}` and `site/{slug}/index.html`
+with no hand-authored HTML. The standalone
 branded-code generator needs `rsvg-convert` for PNG and PDF derivatives; it
 uses `assets/comphy-lab-mark.png` by default and accepts `COMPHY_QR_MARK` as a
 portable override.

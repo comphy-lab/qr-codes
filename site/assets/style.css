@@ -506,6 +506,13 @@ code {
   overflow-wrap: anywhere;
 }
 
+.card h3 a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+  color: inherit;
+}
+
 .card-summary {
   margin: 0;
   color: var(--fg-2);
@@ -632,18 +639,6 @@ code {
   line-height: 1.6;
 }
 
-.stub {
-  display: grid;
-  gap: var(--s-3);
-  /* The shell flexes to fill the viewport; keep the rows packed at the top
-     instead of letting grid stretch them across the page. */
-  align-content: start;
-  justify-items: start;
-  max-width: var(--maxw-read);
-}
-
-.stub p { margin: 0; }
-
 /* =============================================================
    Footer
    ============================================================= */
@@ -733,6 +728,8 @@ code {
     color: var(--c-accent-teal);
   }
 
+  .card:hover h3 a,
+  .card:focus-within h3 a,
   .brand:hover .brand-name,
   .header-link:hover,
   .footer-mark:hover,

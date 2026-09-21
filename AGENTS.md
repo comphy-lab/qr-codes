@@ -15,7 +15,9 @@ away from third-party dynamic QR services.
   this repository.
 - Generate `current/account/` and `site/` from the inventory. Do not hand-edit
   generated files or treat a rendered QR image as stronger evidence than its
-  manifest payload.
+  manifest payload. Add a new QR by adding one public, non-paused inventory
+  entry and running the generator; that writes `current/account/{slug}.{svg,png,pdf}`
+  and `site/{slug}/index.html` with no hand-authored HTML.
 - Each active dynamic replacement must use a durable first-party URL. Existing
   static codes may retain a validated canonical destination. In both cases,
   decode the rendered SVG before it replaces live artwork.

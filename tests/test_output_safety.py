@@ -90,6 +90,10 @@ class OutputSafetyTests(unittest.TestCase):
                     document.index("Content-Security-Policy"),
                     document.index('rel="stylesheet"'),
                 )
+                self.assertNotIn('http-equiv="refresh"', document)
+                if page.parent != SITE_ROOT:
+                    self.assertIn("Download PDF", document)
+                    self.assertIn('class="qr-panel"', document)
 
                 parser = ResourceCollector()
                 parser.feed(document)
