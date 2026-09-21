@@ -355,7 +355,7 @@
     {
       "id": "52940978",
       "slug": "basilisk-sandbox-dynamic",
-      "name": "Vatsal's Basilisk sandbox",
+      "name": "Vatsal's Basilisk sandbox (QR page)",
       "folder": "DynamicCodes",
       "source_kind": "dynamic",
       "source_status": "active",
@@ -679,7 +679,7 @@
     {
       "id": "40865612",
       "slug": "basilisk-sandbox",
-      "name": "Vatsal's Basilisk sandbox",
+      "name": "Vatsal's Basilisk sandbox (direct)",
       "folder": "Talks miscellaneous",
       "source_kind": "static",
       "source_status": "static",
