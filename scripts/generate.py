@@ -27,18 +27,14 @@ QR_COLOUR = "#67236C"
 BACKGROUND = "#FFFFFF"
 SVG_WIDTH = 600
 PNG_SCALE = 12
+PDF_MODULE_PT = 12
 QR_BORDER = 4
+DOWNLOAD_KINDS = ("svg", "png", "pdf")
 CONTENT_TYPE_LABELS = {
     "website": "Website",
     "links": "Links",
     "pdf": "PDF",
     "vcard": "Contact card",
-}
-CONTINUE_LABELS = {
-    "website": "Continue to the website",
-    "pdf": "Continue to the PDF",
-    "vcard": "Continue to the contact card",
-    "links": "Continue to the destination",
 }
 CSP = (
     "default-src 'none'; img-src 'self'; style-src 'self'; font-src 'self'; "
@@ -131,20 +127,26 @@ def _qr_for(payload: str) -> segno.QRCode:
     )
 
 
-def _module_path(qr: segno.QRCode, border: int) -> str:
-    commands: list[str] = []
+def _module_rects(qr: segno.QRCode, border: int) -> tuple[tuple[int, int, int, int], ...]:
+    """Return dark modules as ``(x, y, width, height)`` in SVG coordinates."""
+
+    rects: list[tuple[int, int, int, int]] = []
     for row_index, row in enumerate(qr.matrix):
         start: int | None = None
         for column_index, dark in enumerate((*row, False)):
             if dark and start is None:
                 start = column_index
             elif not dark and start is not None:
-                run = column_index - start
-                x = start + border
-                y = row_index + border
-                commands.append(f"M{x} {y}h{run}v1h-{run}z")
+                rects.append((start + border, row_index + border, column_index - start, 1))
                 start = None
-    return "".join(commands)
+    return tuple(rects)
+
+
+def _module_path(qr: segno.QRCode, border: int) -> str:
+    return "".join(
+        f"M{x} {y}h{width}v{height}h-{width}z"
+        for x, y, width, height in _module_rects(qr, border)
+    )
 
 
 def render_svg(payload: str) -> bytes:
@@ -181,6 +183,69 @@ def render_png(payload: str) -> bytes:
     return stream.getvalue()
 
 
+def _pdf_unit(channel: int) -> str:
+    """Format one 0–255 channel as a deterministic six-decimal PDF number."""
+
+    millionths = (channel * 1_000_000 + 127) // 255
+    return f"{millionths // 1_000_000}.{millionths % 1_000_000:06d}"
+
+
+def _pdf_document(page_points: int, stream: bytes) -> bytes:
+    """Wrap one content stream in a byte-stable single-page PDF."""
+
+    objects = (
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+        (
+            f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {page_points} {page_points}] "
+            f"/Contents 4 0 R /Resources << >> >>"
+        ).encode("ascii"),
+        b"<< /Length " + str(len(stream)).encode("ascii") + b" >>\nstream\n" + stream + b"endstream",
+    )
+    chunks: list[bytes] = [b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n"]
+    offsets = [0]
+    for number, body in enumerate(objects, start=1):
+        offsets.append(sum(len(chunk) for chunk in chunks))
+        chunks.append(f"{number} 0 obj\n".encode("ascii") + body + b"\nendobj\n")
+    xref_at = sum(len(chunk) for chunk in chunks)
+    size = len(objects) + 1
+    xref = [f"xref\n0 {size}\n".encode("ascii"), b"0000000000 65535 f \n"]
+    xref.extend(f"{offset:010d} 00000 n \n".encode("ascii") for offset in offsets[1:])
+    trailer = (
+        f"trailer\n<< /Size {size} /Root 1 0 R >>\nstartxref\n{xref_at}\n%%EOF\n"
+    ).encode("ascii")
+    return b"".join([*chunks, *xref, trailer])
+
+
+def render_pdf(payload: str) -> bytes:
+    """Render a deterministic vector PDF of the same modules as the SVG.
+
+    The locked ``resvg-py`` package rasterizes SVG and does not write PDF.
+    This writer draws the module runs directly, so the file stays vector,
+    byte-stable, and free of an extra PDF package or system library.
+    """
+
+    qr = _qr_for(payload)
+    size = len(qr.matrix) + 2 * QR_BORDER
+    page = size * PDF_MODULE_PT
+    purple = " ".join(_pdf_unit(channel) for channel in (0x67, 0x23, 0x6C))
+    commands = [
+        "q",
+        "1 1 1 rg",
+        f"0 0 {page} {page} re",
+        "f",
+        f"{purple} rg",
+    ]
+    for x, y, width, height in _module_rects(qr, QR_BORDER):
+        commands.append(
+            f"{x * PDF_MODULE_PT} {(size - y - height) * PDF_MODULE_PT} "
+            f"{width * PDF_MODULE_PT} {height * PDF_MODULE_PT} re"
+        )
+    commands.extend(("f", "Q"))
+    stream = ("\n".join(commands) + "\n").encode("ascii")
+    return _pdf_document(page, stream)
+
+
 def _escape(value: Any) -> str:
     return html.escape(str(value), quote=True)
 
@@ -191,15 +256,7 @@ def _page_head(
     description: str,
     canonical_url: str,
     css_href: str,
-    redirect_url: str | None = None,
-    noindex: bool = False,
 ) -> str:
-    redirect = (
-        f'  <meta http-equiv="refresh" content="0; url={_escape(redirect_url)}">\n'
-        if redirect_url is not None
-        else ""
-    )
-    robots = '  <meta name="robots" content="noindex">\n' if noindex else ""
     return (
         "<!doctype html>\n"
         '<html lang="en">\n'
@@ -208,9 +265,7 @@ def _page_head(
         '  <meta name="viewport" content="width=device-width, initial-scale=1">\n'
         f'  <meta http-equiv="Content-Security-Policy" content="{_escape(CSP)}">\n'
         '  <meta name="referrer" content="no-referrer">\n'
-        + redirect
-        + robots
-        + f"  <title>{_escape(title)}</title>\n"
+        f"  <title>{_escape(title)}</title>\n"
         f'  <meta name="description" content="{_escape(description)}">\n'
         f'  <link rel="canonical" href="{_escape(canonical_url)}">\n'
         f'  <link rel="stylesheet" href="{_escape(css_href)}">\n'
@@ -308,28 +363,26 @@ def _first_party_route(value: str, origin: str) -> tuple[str, ...]:
     return route
 
 
-def _redirect_destination(code: dict[str, Any]) -> str | None:
-    """Return the validated single destination eligible for automatic navigation."""
+def _validated_https_url(value: str, slug: str) -> str:
+    """Reject destinations that must not be emitted as outbound links."""
 
-    destination = code.get("destination")
-    if not isinstance(destination, str):
-        return None
-    parsed = urlsplit(destination)
+    parsed = urlsplit(value)
     if (
         parsed.scheme != "https"
         or not parsed.hostname
         or parsed.username is not None
         or parsed.password is not None
-        or any(character.isspace() or ord(character) < 0x20 for character in destination)
+        or any(character.isspace() or ord(character) < 0x20 for character in value)
     ):
-        raise GenerationError(f"unsafe redirect destination for {code['slug']}")
-    return destination
+        raise GenerationError(f"unsafe outbound URL for {slug}")
+    return value
 
 
 def _action_links(code: dict[str, Any]) -> list[tuple[str, str]]:
     actions: list[tuple[str, str]] = []
     destination = code.get("destination")
     if isinstance(destination, str):
+        destination = _validated_https_url(destination, code["slug"])
         label = {
             "website": "Open website",
             "pdf": "Open PDF",
@@ -338,7 +391,7 @@ def _action_links(code: dict[str, Any]) -> list[tuple[str, str]]:
         }[code["content_type"]]
         actions.append((label, destination))
     for link in code.get("links", []):
-        actions.append((link["label"], link["url"]))
+        actions.append((link["label"], _validated_https_url(link["url"], code["slug"])))
     return actions
 
 
@@ -346,7 +399,7 @@ def _downloads_markup(code: dict[str, Any], prefix: str) -> str:
     slug = code["slug"]
     name = code["name"]
     rows = []
-    for kind in ("svg", "png"):
+    for kind in DOWNLOAD_KINDS:
         rows.append(
             '          <li><a class="pill pill--secondary" '
             f'href="{prefix}assets/qr/{_escape(slug)}.{kind}" '
@@ -357,45 +410,16 @@ def _downloads_markup(code: dict[str, Any], prefix: str) -> str:
     return "\n".join(rows)
 
 
-def _redirect_page(code: dict[str, Any], *, destination: str, depth: int) -> str:
-    """Minimal stub for a route that immediately opens one documented target."""
-
-    prefix = "../" * depth
-    host = urlsplit(destination).hostname or destination
-    label = CONTINUE_LABELS[code["content_type"]]
-    return (
-        _page_head(
-            title=f"{code['name']} | CoMPhy Lab QR",
-            description=f"Redirecting to {host}.",
-            canonical_url=destination,
-            css_href=f"{prefix}assets/style.css",
-            redirect_url=destination,
-            noindex=True,
-        )
-        + "<body>\n"
-        + _site_header(home_href=prefix or "./", jump_links=False)
-        + '  <main class="shell stub">\n'
-        + f"    <h1>{_escape(code['name'])}</h1>\n"
-        + "    <p>"
-        + _external(
-            destination,
-            label,
-            css_class="pill",
-            aria_label=f"{label} (opens in a new tab)",
-        )
-        + "</p>\n"
-        + "  </main>\n"
-        + "</body>\n"
-        + "</html>\n"
-    )
+def _landing_url(origin: str, slug: str) -> str:
+    return f"{origin.rstrip('/')}/{slug}/"
 
 
-def _code_page(code: dict[str, Any], *, origin: str, depth: int) -> str:
-    """Full landing page for a first-party route that collects several links."""
+def _code_page(code: dict[str, Any], *, origin: str) -> str:
+    """Landing page with the QR, its downloads, and any documented outbound links."""
 
     payload = code["qr_payload"]
     summary = code.get("summary") or code["name"]
-    prefix = "../" * depth
+    prefix = "../"
     actions = _action_links(code)
     groups = []
     for category in CATEGORIES:
@@ -417,11 +441,11 @@ def _code_page(code: dict[str, Any], *, origin: str, depth: int) -> str:
         _page_head(
             title=f"{code['name']} | CoMPhy Lab QR",
             description=summary,
-            canonical_url=payload,
+            canonical_url=_landing_url(origin, code["slug"]),
             css_href=f"{prefix}assets/style.css",
         )
         + "<body>\n"
-        + _site_header(home_href=prefix or "./", jump_links=False)
+        + _site_header(home_href=prefix, jump_links=False)
         + '  <main class="shell">\n'
         + '    <article class="detail">\n'
         + '      <div class="detail-copy">\n'
@@ -449,35 +473,21 @@ def _code_page(code: dict[str, Any], *, origin: str, depth: int) -> str:
     )
 
 
-def _index_card(code: dict[str, Any], *, origin: str) -> str:
-    payload = code["qr_payload"]
+def _index_card(code: dict[str, Any]) -> str:
     name = code["name"]
     slug = _escape(code["slug"])
-    if is_first_party_url(payload, origin):
-        route_href = "/".join(_first_party_route(payload, origin)) + "/"
-        route = (
-            f'<a class="pill" href="{_escape(route_href)}" '
-            f'aria-label="Open {_escape(name)} link page">Open page</a>'
-        )
-    else:
-        route = _external(
-            payload,
-            "Open target",
-            css_class="pill pill--external",
-            aria_label=f"Open {name} target (opens in a new tab)",
-        )
     downloads = "\n".join(
         f'            <a class="pill pill--secondary" href="assets/qr/{slug}.{ext}" '
         f'download="{slug}.{ext}" '
         f'aria-label="Download {ext.upper()} QR code for {_escape(name)}">'
         f"{ext.upper()}</a>"
-        for ext in ("svg", "png")
+        for ext in DOWNLOAD_KINDS
     )
     return (
         '        <li class="card">\n'
-        f"          <h3>{_escape(name)}</h3>\n"
+        f'          <h3><a href="{slug}/" '
+        f'aria-label="Open {_escape(name)} link page">{_escape(name)}</a></h3>\n'
         + '          <div class="card-foot">\n'
-        f"            {route}\n"
         + downloads
         + "\n          </div>\n"
         "        </li>"
@@ -487,11 +497,10 @@ def _index_card(code: dict[str, Any], *, origin: str) -> str:
 def _index_section(
     codes: list[dict[str, Any]],
     *,
-    origin: str,
     section_id: str,
     heading: str,
 ) -> str:
-    cards = [_index_card(code, origin=origin) for code in codes]
+    cards = [_index_card(code) for code in codes]
     body = "\n".join(cards)
     return (
         f'    <section class="group" id="{section_id}">\n'
@@ -512,7 +521,7 @@ def _index_page(codes: list[dict[str, Any]], *, origin: str) -> str:
         grouped = [code for code in codes if _category(code) == category]
         if grouped:
             populated.append(category)
-            sections.append(_index_section(grouped, origin=origin,
+            sections.append(_index_section(grouped,
                             section_id=category.lower(), heading=category))
         if category == "Blog":
             blog_links = dict.fromkeys(
@@ -1005,6 +1014,13 @@ code {
   overflow-wrap: anywhere;
 }
 
+.card h3 a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+  color: inherit;
+}
+
 .card-summary {
   margin: 0;
   color: var(--fg-2);
@@ -1131,18 +1147,6 @@ code {
   line-height: 1.6;
 }
 
-.stub {
-  display: grid;
-  gap: var(--s-3);
-  /* The shell flexes to fill the viewport; keep the rows packed at the top
-     instead of letting grid stretch them across the page. */
-  align-content: start;
-  justify-items: start;
-  max-width: var(--maxw-read);
-}
-
-.stub p { margin: 0; }
-
 /* =============================================================
    Footer
    ============================================================= */
@@ -1232,6 +1236,8 @@ code {
     color: var(--c-accent-teal);
   }
 
+  .card:hover h3 a,
+  .card:focus-within h3 a,
   .brand:hover .brand-name,
   .header-link:hover,
   .footer-mark:hover,
@@ -1346,28 +1352,23 @@ def build_outputs(
     )
 
     qr_outputs: dict[PurePosixPath, bytes] = {}
-    svg_by_slug: dict[str, bytes] = {}
-    png_by_slug: dict[str, bytes] = {}
+    artwork: dict[str, dict[str, bytes]] = {}
     for code in eligible:
         slug = code["slug"]
         payload = code["qr_payload"]
-        svg = render_svg(payload)
-        png = render_png(payload)
-        svg_by_slug[slug] = svg
-        png_by_slug[slug] = png
-        qr_outputs[PurePosixPath(f"{slug}.svg")] = svg
-        qr_outputs[PurePosixPath(f"{slug}.png")] = png
+        if is_first_party_url(payload, origin) and _first_party_route(payload, origin) != (slug,):
+            raise GenerationError(f"{slug}: first-party payload must be the slug landing page")
+        rendered = {
+            "svg": render_svg(payload),
+            "png": render_png(payload),
+            "pdf": render_pdf(payload),
+        }
+        artwork[slug] = rendered
+        for kind, content in rendered.items():
+            qr_outputs[PurePosixPath(f"{slug}.{kind}")] = content
 
     catalogue_codes = sorted(
         eligible,
-        key=lambda code: (code["name"].casefold(), code["slug"]),
-    )
-    first_party_codes = sorted(
-        (
-            code
-            for code in eligible
-            if is_first_party_url(code["qr_payload"], origin)
-        ),
         key=lambda code: (code["name"].casefold(), code["slug"]),
     )
     site_outputs: dict[PurePosixPath, bytes] = {
@@ -1378,20 +1379,9 @@ def build_outputs(
     site_outputs.update(_logo_assets(REPO_ROOT / "assets/logos"))
     for code in catalogue_codes:
         slug = code["slug"]
-        site_outputs[PurePosixPath(f"assets/qr/{slug}.svg")] = svg_by_slug[slug]
-        site_outputs[PurePosixPath(f"assets/qr/{slug}.png")] = png_by_slug[slug]
-    for code in first_party_codes:
-        segments = _first_party_route(code["qr_payload"], origin)
-        page_path = PurePosixPath(*segments, "index.html")
-        destination = _redirect_destination(code)
-        if destination is not None:
-            # One documented target: a stub that hands over immediately beats a
-            # landing page that renders, advertises downloads and is then torn
-            # away by its own meta refresh.
-            page = _redirect_page(code, destination=destination, depth=len(segments))
-        else:
-            page = _code_page(code, origin=origin, depth=len(segments))
-        site_outputs[page_path] = page.encode("utf-8")
+        for kind in DOWNLOAD_KINDS:
+            site_outputs[PurePosixPath(f"assets/qr/{slug}.{kind}")] = artwork[slug][kind]
+        site_outputs[PurePosixPath(slug, "index.html")] = _code_page(code, origin=origin).encode("utf-8")
 
     return GeneratedOutputs(qr=qr_outputs, site=site_outputs)
 

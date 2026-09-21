@@ -36,14 +36,18 @@ ability to update a destination without depending on a paid QR provider; all
 outbound links must be explicit HTTPS URLs. Existing static codes continue to
 encode their canonical destinations directly.
 
-Each public, non-paused account code is distributed as a matching SVG and PNG
-pair. Single-destination pages are minimal stubs that open their documented
-target, declare `robots: noindex`, and set the canonical to that target rather
-than to themselves; they carry no QR panel and no download pills, since the
-refresh removes the document before either could be used. Multi-link pages
-present their collection on a full landing page with the QR panel and both
-downloads. The download catalogue provides both formats without requiring a
-visit to a route page. Bespoke branded artwork in `current/` also includes PNG
+Each public, non-paused account code is distributed as a matching SVG, PNG,
+and vector PDF. The PDF is a single square page of the same module runs as the
+SVG, at 12 points per module, written by `scripts/generate.py` without an
+extra PDF package. `resvg-py` remains the SVG rasterizer used by the decoder
+tests; it does not emit PDF. Every such code also has a landing page at
+`site/<slug>/index.html`, published as
+`https://comphy-lab.org/qr-codes/<slug>/`, with the QR panel, SVG/PNG/PDF
+downloads, and any documented outbound links. Those pages do not auto-redirect,
+so the artwork stays downloadable. Direct-static codes still encode their
+external URL; the landing page is where a person downloads that QR. The
+download catalogue links each card title to that page and still offers the
+three files directly. Bespoke branded artwork in `current/` also includes PNG
 derivatives of its SVG sources.
 
 ## Page presentation

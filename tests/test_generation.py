@@ -18,36 +18,47 @@ from scripts.generate import (
     GenerationError,
     build_outputs,
     compare_tree,
+    render_pdf,
     render_png,
     render_svg,
     write_tree,
 )
 from scripts.inventory import require_valid_inventory
 from tests.helpers import PUBLIC_PAYLOAD, valid_inventory
-from tests.qr_decode import decode_qr_png
+from tests.qr_decode import decode_qr_png, rasterize_pdf
 
 
 class GenerationTests(unittest.TestCase):
-    def test_svg_and_png_generation_is_byte_deterministic_and_decodable(self) -> None:
+    def test_svg_png_and_pdf_generation_is_byte_deterministic_and_decodable(self) -> None:
         first_svg = render_svg(PUBLIC_PAYLOAD)
         second_svg = render_svg(PUBLIC_PAYLOAD)
         first_png = render_png(PUBLIC_PAYLOAD)
         second_png = render_png(PUBLIC_PAYLOAD)
+        first_pdf = render_pdf(PUBLIC_PAYLOAD)
+        second_pdf = render_pdf(PUBLIC_PAYLOAD)
         self.assertEqual(first_svg, second_svg)
         self.assertEqual(first_png, second_png)
+        self.assertEqual(first_pdf, second_pdf)
+        self.assertTrue(first_pdf.startswith(b"%PDF-1.4\n"))
+        self.assertIn(b"%%EOF\n", first_pdf)
         self.assertIn(b'fill="#67236C"', first_svg)
         self.assertIn(b'fill="#FFFFFF"', first_svg)
         self.assertNotIn(b"<script", first_svg.lower())
-        results = decode_qr_png(first_png)
-        self.assertEqual(len(results), 1)
-        self.assertEqual(results[0].text, PUBLIC_PAYLOAD)
-        self.assertEqual(results[0].format, zxingcpp.BarcodeFormat.QRCode)
+        for content in (first_png, rasterize_pdf(first_pdf)):
+            results = decode_qr_png(content)
+            self.assertEqual(len(results), 1)
+            self.assertEqual(results[0].text, PUBLIC_PAYLOAD)
+            self.assertEqual(results[0].format, zxingcpp.BarcodeFormat.QRCode)
 
     def test_build_outputs_contains_only_eligible_qr_and_first_party_site(self) -> None:
         outputs = build_outputs(require_valid_inventory(valid_inventory()))
         self.assertEqual(
             set(outputs.qr),
-            {PurePosixPath("social-hub.svg"), PurePosixPath("social-hub.png")},
+            {
+                PurePosixPath("social-hub.svg"),
+                PurePosixPath("social-hub.png"),
+                PurePosixPath("social-hub.pdf"),
+            },
         )
         self.assertEqual(
             set(outputs.site),
@@ -55,6 +66,7 @@ class GenerationTests(unittest.TestCase):
                 PurePosixPath("assets/style.css"),
                 PurePosixPath("assets/qr/social-hub.svg"),
                 PurePosixPath("assets/qr/social-hub.png"),
+                PurePosixPath("assets/qr/social-hub.pdf"),
                 PurePosixPath("index.html"),
                 PurePosixPath("social-hub/index.html"),
             }
@@ -88,6 +100,7 @@ class GenerationTests(unittest.TestCase):
         self.assertNotIn('http-equiv="refresh"', page)
         self.assertIn('download="social-hub.svg"', page)
         self.assertIn('download="social-hub.png"', page)
+        self.assertIn('download="social-hub.pdf"', page)
         self.assertNotIn("Public links", page)
         self.assertNotIn("First-party route", page)
         index = outputs.site[PurePosixPath("index.html")].decode("utf-8")
@@ -95,6 +108,7 @@ class GenerationTests(unittest.TestCase):
         self.assertIn('href="social-hub/"', index)
         self.assertIn('href="assets/qr/social-hub.svg"', index)
         self.assertIn('href="assets/qr/social-hub.png"', index)
+        self.assertIn('href="assets/qr/social-hub.pdf"', index)
         self.assertIn("font-src &#x27;self&#x27;", page)
         css = outputs.site[PurePosixPath("assets/style.css")].decode("utf-8")
         self.assertIn(
@@ -141,6 +155,12 @@ class GenerationTests(unittest.TestCase):
         with self.assertRaisesRegex(GenerationError, "unsafe first-party route"):
             build_outputs(inventory)
 
+        inventory["codes"][0]["qr_payload"] = (
+            "https://comphy-lab.org/qr-codes/other-slug/"
+        )
+        with self.assertRaisesRegex(GenerationError, "slug landing page"):
+            build_outputs(inventory)
+
     def test_catalogue_includes_downloads_for_external_static_codes(self) -> None:
         inventory = valid_inventory()
         inventory["codes"][1] = {
@@ -160,19 +180,33 @@ class GenerationTests(unittest.TestCase):
         outputs = build_outputs(inventory)
         self.assertIn(PurePosixPath("assets/qr/public-paper.svg"), outputs.site)
         self.assertIn(PurePosixPath("assets/qr/public-paper.png"), outputs.site)
-        self.assertNotIn(PurePosixPath("public-paper/index.html"), outputs.site)
-        index = outputs.site[PurePosixPath("index.html")].decode("utf-8")
+        self.assertIn(PurePosixPath("assets/qr/public-paper.pdf"), outputs.site)
+        self.assertIn(PurePosixPath("public-paper.pdf"), outputs.qr)
+        page = outputs.site[PurePosixPath("public-paper/index.html")].decode("utf-8")
         self.assertIn(
             'href="https://example.org/paper.pdf" target="_blank" '
             'rel="noopener noreferrer" '
-            'aria-label="Open Public paper target (opens in a new tab)">'
-            "Open target</a>",
+            'aria-label="Open PDF (opens in a new tab)">Open PDF</a>',
+            page,
+        )
+        self.assertIn('download="public-paper.pdf"', page)
+        self.assertNotIn('http-equiv="refresh"', page)
+        self.assertIn(
+            '<link rel="canonical" href="https://qr.comphy-lab.org/public-paper/">',
+            page,
+        )
+        index = outputs.site[PurePosixPath("index.html")].decode("utf-8")
+        self.assertIn('href="public-paper/"', index)
+        self.assertIn(
+            'aria-label="Open Public paper link page">Public paper</a>',
             index,
         )
+        self.assertNotIn("Open target", index)
         self.assertIn('download="public-paper.svg"', index)
         self.assertIn('download="public-paper.png"', index)
+        self.assertIn('download="public-paper.pdf"', index)
 
-    def test_single_destination_auto_redirect_is_escaped_with_fallback(self) -> None:
+    def test_single_destination_link_is_escaped_on_the_landing_page(self) -> None:
         inventory = deepcopy(valid_inventory())
         code = inventory["codes"][0]
         destination = 'https://example.org/open?label="lab"&mode=full'
@@ -182,14 +216,10 @@ class GenerationTests(unittest.TestCase):
         outputs = build_outputs(inventory)
         page = outputs.site[PurePosixPath("social-hub/index.html")].decode("utf-8")
         escaped = "https://example.org/open?label=&quot;lab&quot;&amp;mode=full"
-        self.assertIn(
-            f'<meta http-equiv="refresh" content="0; url={escaped}">', page
-        )
+        self.assertNotIn('http-equiv="refresh"', page)
         self.assertIn(f'href="{escaped}"', page)
-        self.assertLess(
-            page.index('http-equiv="Content-Security-Policy"'),
-            page.index('http-equiv="refresh"'),
-        )
+        self.assertIn('download="social-hub.pdf"', page)
+        self.assertIn("<figure", page)
 
     def test_write_then_check_detects_no_drift_and_reports_mutation(self) -> None:
         outputs = build_outputs(require_valid_inventory(valid_inventory()))
@@ -290,12 +320,15 @@ class GenerationTests(unittest.TestCase):
             'aria-label="Download SVG QR code for Public paper"', index
         )
         self.assertIn(
+            'aria-label="Download PDF QR code for Public paper"', index
+        )
+        self.assertIn(
             'aria-label="Open CoMPhy &lt;social&gt; &amp; links link page"', index
         )
         self.assertIn('id="team"', index)
         self.assertIn('id="research"', index)
 
-    def test_single_destination_route_is_a_minimal_noindex_stub(self) -> None:
+    def test_single_destination_route_is_a_downloadable_landing_page(self) -> None:
         inventory = deepcopy(valid_inventory())
         code = inventory["codes"][0]
         code["content_type"] = "vcard"
@@ -306,21 +339,19 @@ class GenerationTests(unittest.TestCase):
             .site[PurePosixPath("social-hub/index.html")]
             .decode("utf-8")
         )
-        self.assertIn('<meta name="robots" content="noindex">', page)
-        # Deliberate semantic change: the canonical now points at the
-        # destination instead of contradicting the meta refresh (audit m4).
+        self.assertNotIn('name="robots"', page)
+        self.assertNotIn('http-equiv="refresh"', page)
         self.assertIn(
-            '<link rel="canonical" href="https://comphy-lab.org/contact-card/">', page
-        )
-        self.assertIn(
-            '<meta http-equiv="refresh" '
-            'content="0; url=https://comphy-lab.org/contact-card/">',
+            '<link rel="canonical" href="https://qr.comphy-lab.org/social-hub/">',
             page,
         )
-        self.assertNotIn("download=", page)
-        self.assertNotIn("<figure", page)
-        self.assertNotIn("<ul", page)
-        self.assertIn("Continue to the contact card", page)
+        self.assertIn('download="social-hub.svg"', page)
+        self.assertIn('download="social-hub.png"', page)
+        self.assertIn('download="social-hub.pdf"', page)
+        self.assertIn("<figure", page)
+        self.assertIn("<ul", page)
+        self.assertIn("Open contact card", page)
+        self.assertNotIn("Continue to the contact card", page)
         self.assertNotIn("First-party route", page)
 
     def test_multi_link_route_keeps_its_collection_and_never_redirects(self) -> None:

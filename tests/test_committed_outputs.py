@@ -5,7 +5,7 @@ import unittest
 
 import make_branded_qr_codes as branded
 from scripts.inventory import load_valid_inventory
-from tests.qr_decode import decode_qr_png, rasterize_svg
+from tests.qr_decode import decode_qr_png, rasterize_pdf, rasterize_svg
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -48,6 +48,22 @@ class CommittedOutputTests(unittest.TestCase):
             with self.subTest(slug=slug):
                 svg_path = output_dir / f"{slug}.svg"
                 self.assert_decodes_exactly(rasterize_svg(svg_path), payload, svg_path)
+
+    def test_every_public_code_has_a_landing_page_and_vector_pdf(self) -> None:
+        account = REPO_ROOT / "current/account"
+        site = REPO_ROOT / "site"
+        pdfs = {path.stem for path in account.glob("*.pdf")}
+        self.assertEqual(pdfs, set(self.expected))
+        for slug, payload in sorted(self.expected.items()):
+            with self.subTest(slug=slug):
+                pdf_path = account / f"{slug}.pdf"
+                page = site / slug / "index.html"
+                self.assertTrue(page.is_file(), f"missing landing page: {page}")
+                self.assert_decodes_exactly(rasterize_pdf(pdf_path.read_bytes()), payload, pdf_path)
+                for ext in ("svg", "png", "pdf"):
+                    account_file = account / f"{slug}.{ext}"
+                    site_file = site / "assets" / "qr" / f"{slug}.{ext}"
+                    self.assertEqual(account_file.read_bytes(), site_file.read_bytes())
 
     def test_all_bespoke_svgs_rasterize_and_decode_exactly(self) -> None:
         expected = {branded.OUTDIR / f"{asset.stem}.svg": asset.url for asset in branded.ASSETS}
