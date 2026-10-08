@@ -365,6 +365,39 @@ class GenerationTests(unittest.TestCase):
         self.assertIn('href="../"', page)
         self.assertNotIn('href="../index.html"', page)
 
+    def test_paper_links_render_uniform_bibliographic_entries(self) -> None:
+        inventory = deepcopy(valid_inventory())
+        code = inventory["codes"][0]
+        code["links"] = [
+            {
+                "label": "Self-similar Worthington jets",
+                "url": "https://arxiv.org/abs/2607.08972",
+                "authors": "Gordillo, J. M., Rodríguez-Rodríguez, J., & Sanjay, V.",
+                "venue": "arXiv preprint arXiv:2607.08972",
+                "year": 2026,
+            },
+            {
+                "label": "Bursting bubble in a viscoplastic medium",
+                "url": "https://doi.org/10.1017/jfm.2021.489",
+                "authors": "Sanjay, V., Lohse, D., & Jalaal, M.",
+                "venue": "J. Fluid Mech., 922, A2",
+                "year": 2021,
+            },
+        ]
+        outputs = build_outputs(inventory)
+        page = outputs.site[PurePosixPath("social-hub/index.html")].decode("utf-8")
+        self.assertIn('<ul class="papers" role="list">', page)
+        self.assertIn('class="paper-cite"', page)
+        self.assertIn('class="paper-title"', page)
+        self.assertIn("Gordillo, J. M., Rodríguez-Rodríguez, J., &amp; Sanjay, V.", page)
+        self.assertIn("arXiv preprint arXiv:2607.08972 (2026).", page)
+        self.assertIn("J. Fluid Mech., 922, A2 (2021).", page)
+        self.assertIn('href="https://arxiv.org/abs/2607.08972"', page)
+        self.assertIn('href="https://doi.org/10.1017/jfm.2021.489"', page)
+        css = outputs.site[PurePosixPath("assets/style.css")].decode("utf-8")
+        self.assertIn(".paper-cite", css)
+        self.assertIn(".paper-title", css)
+
     def test_self_hosted_faces_are_emitted_byte_identically(self) -> None:
         outputs = build_outputs(require_valid_inventory(valid_inventory()))
         self.assertEqual(len(FONT_FILES), 10)

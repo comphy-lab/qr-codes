@@ -532,6 +532,35 @@ code {
 .link-group { margin-top: var(--s-5); }
 .link-group h2 { font-size: var(--t-h3); }
 
+.papers {
+  display: grid;
+  gap: var(--s-3);
+  margin: var(--s-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.paper-cite {
+  margin: 0;
+  color: var(--fg-2);
+  font-size: var(--t-body);
+  line-height: 1.45;
+}
+
+.paper-title {
+  color: var(--fg-1);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--c-accent-teal) 45%, transparent);
+  text-underline-offset: 0.15em;
+}
+
+.paper-title:hover,
+.paper-title:focus-visible {
+  color: var(--c-accent-teal-hover);
+  text-decoration-color: var(--c-accent-teal);
+}
+
 .logo-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));

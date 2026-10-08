@@ -37,6 +37,9 @@ REQUIRED_CODE_KEYS = frozenset(
 )
 OPTIONAL_CODE_KEYS = frozenset({"summary", "links"})
 LINK_KEYS = frozenset({"label", "url"})
+OPTIONAL_LINK_KEYS = frozenset({"authors", "venue", "year"})
+YEAR_MIN = 1900
+YEAR_MAX = 2100
 SLUG_RE = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*\Z")
 QRCO_PATH_RE = re.compile(r"/[A-Za-z0-9_-]+\Z")
 FIRST_PARTY_SEGMENT_RE = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*\Z")
@@ -340,6 +343,7 @@ def validate_inventory(data: dict[str, Any]) -> list[str]:
             _append_unknown_and_missing_keys(
                 link,
                 required=LINK_KEYS,
+                optional=OPTIONAL_LINK_KEYS,
                 location=link_location,
                 errors=errors,
             )
@@ -350,6 +354,24 @@ def validate_inventory(data: dict[str, Any]) -> list[str]:
             if parsed_link is not None:
                 assert isinstance(link_url, str)
                 _reject_vendor_or_signed_url(link_url, f"{link_location}.url", errors)
+            paper_fields = {key: link.get(key) for key in ("authors", "venue", "year")}
+            present = [key for key, value in paper_fields.items() if value is not None]
+            if present and len(present) != 3:
+                errors.append(
+                    f"{link_location}: paper entries need authors, venue, and year together"
+                )
+            elif present:
+                if not _is_nonempty_string(paper_fields["authors"]):
+                    errors.append(f"{link_location}.authors: must be a non-empty string")
+                if not _is_nonempty_string(paper_fields["venue"]):
+                    errors.append(f"{link_location}.venue: must be a non-empty string")
+                year = paper_fields["year"]
+                if isinstance(year, bool) or not isinstance(year, int):
+                    errors.append(f"{link_location}.year: must be an integer year")
+                elif year < YEAR_MIN or year > YEAR_MAX:
+                    errors.append(
+                        f"{link_location}.year: must be between {YEAR_MIN} and {YEAR_MAX}"
+                    )
 
         if content_type != "links" and links:
             errors.append(f"{location}.links: only content_type=links may publish links")

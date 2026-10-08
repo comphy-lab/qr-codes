@@ -156,6 +156,29 @@ class InventoryTests(unittest.TestCase):
         self.assert_error_contains(inventory, "must use HTTPS")
         self.assert_error_contains(inventory, "unknown keys: html")
 
+    def test_paper_link_fields_must_appear_together(self) -> None:
+        inventory = valid_inventory()
+        inventory["codes"][0]["links"][0] = {
+            "label": "Incomplete paper",
+            "url": "https://doi.org/10.1017/jfm.2024.982",
+            "authors": "Sanjay, V.",
+            "year": 2025,
+        }
+        self.assert_error_contains(
+            inventory, "paper entries need authors, venue, and year together"
+        )
+
+    def test_paper_link_year_must_be_an_integer_year(self) -> None:
+        inventory = valid_inventory()
+        inventory["codes"][0]["links"][0] = {
+            "label": "Bad year",
+            "url": "https://doi.org/10.1017/jfm.2024.982",
+            "authors": "Sanjay, V.",
+            "venue": "J. Fluid Mech., 1004, A6",
+            "year": "2025",
+        }
+        self.assert_error_contains(inventory, "must be an integer year")
+
     def test_first_party_paths_are_safe_canonical_directories(self) -> None:
         inventory = valid_inventory()
         inventory["codes"][0]["qr_payload"] = (

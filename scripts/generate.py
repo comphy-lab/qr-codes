@@ -378,8 +378,23 @@ def _validated_https_url(value: str, slug: str) -> str:
     return value
 
 
-def _action_links(code: dict[str, Any]) -> list[tuple[str, str]]:
-    actions: list[tuple[str, str]] = []
+@dataclass(frozen=True)
+class OutboundLink:
+    """One outbound landing-page link, optionally a bibliographic paper entry."""
+
+    label: str
+    url: str
+    authors: str | None = None
+    venue: str | None = None
+    year: int | None = None
+
+    @property
+    def is_paper(self) -> bool:
+        return self.authors is not None and self.venue is not None and self.year is not None
+
+
+def _action_links(code: dict[str, Any]) -> list[OutboundLink]:
+    actions: list[OutboundLink] = []
     destination = code.get("destination")
     if isinstance(destination, str):
         destination = _validated_https_url(destination, code["slug"])
@@ -389,10 +404,50 @@ def _action_links(code: dict[str, Any]) -> list[tuple[str, str]]:
             "vcard": "Open contact card",
             "links": "Open destination",
         }[code["content_type"]]
-        actions.append((label, destination))
+        actions.append(OutboundLink(label=label, url=destination))
     for link in code.get("links", []):
-        actions.append((link["label"], _validated_https_url(link["url"], code["slug"])))
+        year = link.get("year")
+        actions.append(
+            OutboundLink(
+                label=link["label"],
+                url=_validated_https_url(link["url"], code["slug"]),
+                authors=link.get("authors"),
+                venue=link.get("venue"),
+                year=year if isinstance(year, int) else None,
+            )
+        )
     return actions
+
+
+def _paper_item(link: OutboundLink) -> str:
+    """Render one bibliographic paper entry with a linked title."""
+
+    assert link.authors is not None and link.venue is not None and link.year is not None
+    title_link = _external(
+        link.url,
+        link.label,
+        css_class="paper-title",
+        aria_label=f"{link.label} (opens in a new tab)",
+    )
+    return (
+        "          <li class=\"paper\">\n"
+        f'            <p class="paper-cite">{_escape(link.authors)} '
+        f"{title_link}. {_escape(link.venue)} ({link.year}).</p>\n"
+        "          </li>"
+    )
+
+
+def _pill_item(link: OutboundLink) -> str:
+    return (
+        "          <li>"
+        + _external(
+            link.url,
+            link.label,
+            css_class="pill pill--external",
+            aria_label=f"{link.label} (opens in a new tab)",
+        )
+        + "</li>"
+    )
 
 
 def _downloads_markup(code: dict[str, Any], prefix: str) -> str:
@@ -423,19 +478,22 @@ def _code_page(code: dict[str, Any], *, origin: str) -> str:
     actions = _action_links(code)
     groups = []
     for category in CATEGORIES:
-        links = [(label, url) for label, url in actions
-                 if _link_category(url, _category(code)) == category]
+        links = [link for link in actions
+                 if _link_category(link.url, _category(code)) == category]
         if not links:
             continue
+        uses_papers = any(link.is_paper for link in links)
+        list_class = "papers" if uses_papers else "actions"
         items = "\n".join(
-            "          <li>" + _external(
-                url, label, css_class="pill pill--external",
-                aria_label=f"{label} (opens in a new tab)",
-            ) + "</li>" for label, url in links
+            _paper_item(link) if link.is_paper else _pill_item(link)
+            for link in links
         )
-        groups.append(f'        <section class="link-group"><h2>{category}</h2>\n'
-                      '        <ul class="actions" role="list">\n'
-                      + items + '\n        </ul></section>\n')
+        groups.append(
+            f'        <section class="link-group"><h2>{category}</h2>\n'
+            f'        <ul class="{list_class}" role="list">\n'
+            + items
+            + "\n        </ul></section>\n"
+        )
     destination_markup = "".join(groups)
     return (
         _page_head(
@@ -1039,6 +1097,35 @@ code {
 
 .link-group { margin-top: var(--s-5); }
 .link-group h2 { font-size: var(--t-h3); }
+
+.papers {
+  display: grid;
+  gap: var(--s-3);
+  margin: var(--s-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.paper-cite {
+  margin: 0;
+  color: var(--fg-2);
+  font-size: var(--t-body);
+  line-height: 1.45;
+}
+
+.paper-title {
+  color: var(--fg-1);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--c-accent-teal) 45%, transparent);
+  text-underline-offset: 0.15em;
+}
+
+.paper-title:hover,
+.paper-title:focus-visible {
+  color: var(--c-accent-teal-hover);
+  text-decoration-color: var(--c-accent-teal);
+}
 
 .logo-grid {
   display: grid;

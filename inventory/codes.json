@@ -19,32 +19,60 @@
       "summary": "Research on inertial flow focusing in impacting drops, collapsing cavities, and impulsively accelerated interfaces.",
       "links": [
         {
-          "label": "Bubble bursting in a viscoelastic medium",
-          "url": "https://arxiv.org/abs/2408.05089"
+          "label": "Self-similar Worthington jets",
+          "url": "https://arxiv.org/abs/2607.08972",
+          "authors": "Gordillo, J. M., Rodríguez-Rodríguez, J., & Sanjay, V.",
+          "venue": "arXiv preprint arXiv:2607.08972",
+          "year": 2026
         },
         {
-          "label": "Drop impact in JFM 1004",
-          "url": "https://doi.org/10.1017/jfm.2024.982"
+          "label": "Viscoelastic Worthington jets and droplets produced by bursting bubbles",
+          "url": "https://doi.org/10.1017/jfm.2025.237",
+          "authors": "Dixit, A., Oratis, A., Zinelis, K., Lohse, D., & Sanjay, V.",
+          "venue": "J. Fluid Mech., 1010, A2",
+          "year": 2025
         },
         {
-          "label": "Bubble bursting in a viscoplastic medium",
-          "url": "https://doi.org/10.1017/jfm.2021.489"
+          "label": "The role of viscosity on drop impact forces on non-wetting surfaces",
+          "url": "https://doi.org/10.1017/jfm.2024.982",
+          "authors": "Sanjay, V., Zhang, B., Lv, C., & Lohse, D.",
+          "venue": "J. Fluid Mech., 1004, A6",
+          "year": 2025
         },
         {
-          "label": "Bubble bursting in an elastoviscoplastic medium",
-          "url": "https://doi.org/10.1017/jfm.2024.1073"
+          "label": "Bursting bubble in a viscoplastic medium",
+          "url": "https://doi.org/10.1017/jfm.2021.489",
+          "authors": "Sanjay, V., Lohse, D., & Jalaal, M.",
+          "venue": "J. Fluid Mech., 922, A2",
+          "year": 2021
         },
         {
-          "label": "Bashkatov et al.",
-          "url": "https://arxiv.org/abs/2409.00515"
+          "label": "Bursting bubble in an elastoviscoplastic medium",
+          "url": "https://doi.org/10.1017/jfm.2024.1073",
+          "authors": "Balasubramanian, A. G., Sanjay, V., Jalaal, M., Vinuesa, R., & Tammisola, O.",
+          "venue": "J. Fluid Mech., 1001, A9",
+          "year": 2024
         },
         {
-          "label": "Drop-impact force peaks",
-          "url": "https://doi.org/10.1103/PhysRevLett.129.104501"
+          "label": "Electrolyte droplet spraying in H2 bubbles during water electrolysis under normal and microgravity conditions",
+          "url": "https://doi.org/10.1038/s41467-025-59762-7",
+          "authors": "Bashkatov, A., Bürkle, F., Demirkır, Ç., Ding, W., Sanjay, V., Babich, A., Yang, X., Mutschke, G., Czarske, J., Lohse, D., Krug, D., Büttner, L., & Eckert, K.",
+          "venue": "Nat. Commun., 16, 4580",
+          "year": 2025
         },
         {
-          "label": "Elastocapillary Worthington jet",
-          "url": "https://arxiv.org/abs/2207.07928"
+          "label": "Impact forces of water drops falling on superhydrophobic surfaces",
+          "url": "https://doi.org/10.1103/PhysRevLett.129.104501",
+          "authors": "Zhang, B., Sanjay, V., Shi, S., Zhao, Y., Lv, C., Feng, X.-Q., & Lohse, D.",
+          "venue": "Phys. Rev. Lett., 129, 104501",
+          "year": 2022
+        },
+        {
+          "label": "Elastocapillary Worthington jets",
+          "url": "https://arxiv.org/abs/2207.07928",
+          "authors": "Sen, U., Lohse, D., & Jalaal, M.",
+          "venue": "arXiv preprint arXiv:2207.07928",
+          "year": 2022
         }
       ]
     },
