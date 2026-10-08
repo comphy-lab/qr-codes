@@ -419,20 +419,40 @@ def _action_links(code: dict[str, Any]) -> list[OutboundLink]:
     return actions
 
 
+def _paper_ref_label(url: str) -> str:
+    """Return the visible DOI: or arXiv: label for a paper's primary URL."""
+
+    doi_prefix = "https://doi.org/"
+    arxiv_prefix = "https://arxiv.org/abs/"
+    if url.startswith(doi_prefix):
+        return f"DOI: {url[len(doi_prefix):]}"
+    if url.startswith(arxiv_prefix):
+        return f"arXiv:{url[len(arxiv_prefix):]}"
+    raise GenerationError(f"paper URL needs a DOI or arXiv abs target: {url}")
+
+
 def _paper_item(link: OutboundLink) -> str:
-    """Render one bibliographic paper entry with a linked title."""
+    """Render one bibliographic paper entry with linked title and DOI/arXiv."""
 
     assert link.authors is not None and link.venue is not None and link.year is not None
     title_link = _external(
         link.url,
         link.label,
-        css_class="paper-title",
+        css_class="paper-link paper-title",
         aria_label=f"{link.label} (opens in a new tab)",
+    )
+    ref_label = _paper_ref_label(link.url)
+    ref_link = _external(
+        link.url,
+        ref_label,
+        css_class="paper-link paper-ref",
+        aria_label=f"{ref_label} (opens in a new tab)",
     )
     return (
         "          <li class=\"paper\">\n"
         f'            <p class="paper-cite">{_escape(link.authors)} '
-        f"{title_link}. {_escape(link.venue)} ({link.year}).</p>\n"
+        f"{title_link}. {_escape(link.venue)} ({link.year}). "
+        f"{ref_link}</p>\n"
         "          </li>"
     )
 
@@ -1113,18 +1133,28 @@ code {
   line-height: 1.45;
 }
 
-.paper-title {
-  color: var(--fg-1);
+/* Paper titles and DOI/arXiv refs must beat the global `a { color: inherit;
+   text-decoration: none }` reset so they read as real links on touch and
+   pointer devices. Keep them above the non-interactive grid overlay. */
+.paper-link {
+  position: relative;
+  z-index: 1;
+  color: var(--c-accent-teal);
   font-weight: 600;
   text-decoration: underline;
-  text-decoration-color: color-mix(in srgb, var(--c-accent-teal) 45%, transparent);
-  text-underline-offset: 0.15em;
+  text-decoration-color: var(--c-accent-teal);
+  text-underline-offset: 0.18em;
+  cursor: pointer;
 }
 
-.paper-title:hover,
-.paper-title:focus-visible {
+.paper-link:hover,
+.paper-link:focus-visible {
   color: var(--c-accent-teal-hover);
-  text-decoration-color: var(--c-accent-teal);
+  text-decoration-color: var(--c-accent-teal-hover);
+}
+
+.paper-ref {
+  white-space: nowrap;
 }
 
 .logo-grid {
@@ -1294,12 +1324,14 @@ code {
   .brand-name,
   .header-link,
   .footer-mark,
-  .footer-link {
+  .footer-link,
+  .paper-link {
     transition:
       background var(--dur-fast) var(--ease),
       border-color var(--dur-fast) var(--ease),
       box-shadow var(--dur-fast) var(--ease),
-      color var(--dur-fast) var(--ease);
+      color var(--dur-fast) var(--ease),
+      text-decoration-color var(--dur-fast) var(--ease);
   }
 
   .pill:hover {

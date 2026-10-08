@@ -547,18 +547,28 @@ code {
   line-height: 1.45;
 }
 
-.paper-title {
-  color: var(--fg-1);
+/* Paper titles and DOI/arXiv refs must beat the global `a { color: inherit;
+   text-decoration: none }` reset so they read as real links on touch and
+   pointer devices. Keep them above the non-interactive grid overlay. */
+.paper-link {
+  position: relative;
+  z-index: 1;
+  color: var(--c-accent-teal);
   font-weight: 600;
   text-decoration: underline;
-  text-decoration-color: color-mix(in srgb, var(--c-accent-teal) 45%, transparent);
-  text-underline-offset: 0.15em;
+  text-decoration-color: var(--c-accent-teal);
+  text-underline-offset: 0.18em;
+  cursor: pointer;
 }
 
-.paper-title:hover,
-.paper-title:focus-visible {
+.paper-link:hover,
+.paper-link:focus-visible {
   color: var(--c-accent-teal-hover);
-  text-decoration-color: var(--c-accent-teal);
+  text-decoration-color: var(--c-accent-teal-hover);
+}
+
+.paper-ref {
+  white-space: nowrap;
 }
 
 .logo-grid {
@@ -728,12 +738,14 @@ code {
   .brand-name,
   .header-link,
   .footer-mark,
-  .footer-link {
+  .footer-link,
+  .paper-link {
     transition:
       background var(--dur-fast) var(--ease),
       border-color var(--dur-fast) var(--ease),
       box-shadow var(--dur-fast) var(--ease),
-      color var(--dur-fast) var(--ease);
+      color var(--dur-fast) var(--ease),
+      text-decoration-color var(--dur-fast) var(--ease);
   }
 
   .pill:hover {
