@@ -131,6 +131,20 @@ class GenerationTests(unittest.TestCase):
         self.assertIn("color-scheme: light dark", css)
         self.assertIn("@media (prefers-color-scheme: dark)", css)
         self.assertIn("@media (forced-colors: active)", css)
+        # Light hero stops stay as authored; dark lifts all four DS stops.
+        self.assertIn("--hero-grad-1: #e2555b;", css)
+        self.assertIn("--hero-grad-2: #68236d;", css)
+        self.assertIn("--hero-grad-3: #4c6ef5;", css)
+        self.assertIn("--hero-grad-4: #2d1b69;", css)
+        self.assertIn("--hero-grad-1: #ff8a8a;", css)
+        self.assertIn("--hero-grad-2: #d99adc;", css)
+        self.assertIn("--hero-grad-3: #8aa0ff;", css)
+        self.assertIn("--hero-grad-4: #9b8cff;", css)
+        self.assertIn("color: var(--hero-grad-2);", css)
+        self.assertIn(
+            "@supports ((-webkit-background-clip: text) or (background-clip: text))",
+            css,
+        )
         # The QR quiet zone must stay light in both themes.
         self.assertIn("background: #fff;", css)
 

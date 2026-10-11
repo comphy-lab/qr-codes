@@ -202,9 +202,13 @@
 
     --grid-line: rgba(248, 244, 236, 0.04);
     --eyebrow-fg: #c09bc4;
-    /* Lift the two darkest hero stops on dark paper (1.85 and 1.33 otherwise). */
-    --hero-grad-2: #c09bc4;
-    --hero-grad-4: #9b8cf2;
+    /* Hero gradient as type: lift every stop so clipped display titles
+       stay readable on --c-paper (#12100d). Light theme values are unchanged.
+       Stops match comphy-design-system PR #3 (0d70847). */
+    --hero-grad-1: #ff8a8a;
+    --hero-grad-2: #d99adc;
+    --hero-grad-3: #8aa0ff;
+    --hero-grad-4: #9b8cff;
     --code-bg: color-mix(in srgb, var(--c-brand-purple) 22%, transparent);
     --code-fg: #f1dcf4;
 
@@ -443,17 +447,22 @@ code {
   font-size: var(--t-hero);
   line-height: 1.02;
   letter-spacing: -0.015em;
-  background: linear-gradient(
-    90deg,
-    var(--hero-grad-1) 0%,
-    var(--hero-grad-2) 45%,
-    var(--hero-grad-3) 55%,
-    var(--hero-grad-4) 100%
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
+  color: var(--hero-grad-2); /* solid fallback; clip+fill applied only when supported */
+}
+
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .hero-title {
+    background: linear-gradient(
+      90deg,
+      var(--hero-grad-1) 0%,
+      var(--hero-grad-2) 45%,
+      var(--hero-grad-3) 55%,
+      var(--hero-grad-4) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
 }
 
 /* Clipped gradient type has no forced-colours meaning; fall back to ink. */
