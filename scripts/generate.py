@@ -695,6 +695,8 @@ BASE_CSS = """\
 
   /* ---------- Brand hues ---------- */
   --c-brand-purple: #68236d;
+  --c-accent-coral: #cf4900; /* fills, swatches, chip ground */
+  --c-accent-coral-text: #c04400; /* text on paper. Same hue as the fill; darkened for WCAG AA. */
   /* Design-system hero stops, with stop 1 deepened from #ff6b6b so every
      stop clears 3:1 for large text on the paper (2.42 was below). */
   --hero-grad-1: #e2555b;
@@ -802,6 +804,9 @@ BASE_CSS = """\
     --c-accent-teal-fg: #0f1c1b;
     --c-accent-teal-hover: #88d2ce;
 
+    /* Pale-surface text colour. Dark mode keeps the fill (#cf4900). */
+    --c-accent-coral-text: var(--c-accent-coral);
+
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
     --shadow-md: 0 4px 10px rgba(0, 0, 0, 0.45);
     --shadow-soft: 0 12px 40px rgba(0, 0, 0, 0.5);
@@ -863,7 +868,7 @@ a:focus-visible {
   outline-offset: 3px;
 }
 
-strong { color: inherit; }
+strong { color: var(--c-accent-coral-text); }
 
 h1,
 h2,
