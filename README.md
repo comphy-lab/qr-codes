@@ -73,8 +73,11 @@ portable override.
 GitHub Actions validates the inventory, generated files, and decoded QR
 payloads before uploading `site/` unchanged to GitHub Pages. It then compares
 the live pages and downloads with the validated source. Run
-`python3 scripts/verify_deployment.py` to repeat the live check. The generated
-HTML remains script-free and uses a restrictive content security policy.
+`python3 scripts/verify_deployment.py` to repeat the live check. That verifier
+retries with cache-busting queries and exponential backoff so a brief CDN lag
+after Pages deploy does not fail the job while still requiring a byte match.
+The generated HTML remains script-free and uses a restrictive content security
+policy.
 
 The `bursting-bubble-paper` entry points to the 2021 viscoplastic paper. The
 `arxiv-bursting-bubbles-ve` entry points directly to the 2025 viscoelastic
