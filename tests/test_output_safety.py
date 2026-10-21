@@ -93,8 +93,16 @@ class OutputSafetyTests(unittest.TestCase):
                     document.index('rel="stylesheet"'),
                 )
                 is_redirect = 'http-equiv="refresh"' in document
-                if page.parent != SITE_ROOT and is_redirect:
-                    self.assertIn('rel="canonical"', document)
+                if page.parent != SITE_ROOT and page.parent.name == "vatsal-sanjay":
+                    self.assertTrue(is_redirect)
+                    self.assertIn(
+                        'content="0; url=https://comphy-lab.org/contact-card/"',
+                        document,
+                    )
+                    self.assertIn(
+                        '<link rel="canonical" href="https://comphy-lab.org/contact-card/">',
+                        document,
+                    )
                     self.assertNotIn("Download PDF", document)
                     self.assertNotIn('class="qr-panel"', document)
                 else:

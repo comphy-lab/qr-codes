@@ -8,16 +8,16 @@ static codes. Private targets are counted but redacted.
 
 Browse the [download catalogue](https://comphy-lab.org/qr-codes/) for SVG,
 PNG, and PDF copies of all 65 public, non-paused account codes and the lab and
-university logos. Every one of those codes also has a landing page at
-`https://comphy-lab.org/qr-codes/{slug}/` with the QR and the three downloads.
-The four [standalone branded codes](current/) also include
-SVG and PNG.
+university logos. Each of those codes has a page at
+`https://comphy-lab.org/qr-codes/{slug}/`. Ordinary pages keep the QR and the
+three downloads; the contact-card cutover is the exception below. The four
+[standalone branded codes](current/) also include SVG and PNG.
 
 The contact-card QR (`vatsal-sanjay`) encodes
 [`https://comphy-lab.org/contact-card/`](https://comphy-lab.org/contact-card/)
 directly, superseding the third-party dynamic code `https://qrco.de/beQCcR`.
-The first-party page at `/qr-codes/vatsal-sanjay/` remains as a compatibility
-redirect for codes that were already printed.
+Its SVG/PNG/PDF downloads stay on the catalogue; `/qr-codes/vatsal-sanjay/` is
+only a compatibility redirect for codes that were already printed.
 
 ## Catalogue
 
