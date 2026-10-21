@@ -9,7 +9,13 @@ from urllib.error import HTTPError
 
 import png
 
-from scripts.verify_deployment import matches_content, matches_png, verify_file
+from scripts.verify_deployment import (
+    cache_busted_url,
+    matches_content,
+    matches_png,
+    retry_delay_seconds,
+    verify_file,
+)
 
 
 class DeploymentTests(unittest.TestCase):
@@ -21,8 +27,14 @@ class DeploymentTests(unittest.TestCase):
         self.path.parent.mkdir()
         self.path.write_bytes(b"expected page")
 
-    def check(self, attempts: int = 1) -> str | None:
-        return verify_file(self.path, site=self.site, origin="https://example.org/qr", attempts=attempts)
+    def check(self, attempts: int = 1, *, nonce: int = 1_700_000_000) -> str | None:
+        return verify_file(
+            self.path,
+            site=self.site,
+            origin="https://example.org/qr",
+            attempts=attempts,
+            nonce=nonce,
+        )
 
     def response(self, body: bytes) -> MagicMock:
         response = MagicMock()
@@ -35,12 +47,26 @@ class DeploymentTests(unittest.TestCase):
     def test_checks_the_public_directory_route_under_the_base_path(self, fetch) -> None:
         fetch.return_value = self.response(b"expected page")
         self.assertIsNone(self.check())
-        self.assertEqual(fetch.call_args.args[0].full_url, "https://example.org/qr/paper/")
+        self.assertEqual(
+            fetch.call_args.args[0].full_url,
+            "https://example.org/qr/paper/?v=1700000000-0",
+        )
 
     @patch("scripts.verify_deployment.urlopen")
     def test_http_200_with_a_wrong_or_stale_page_is_a_failure(self, fetch) -> None:
         fetch.return_value = self.response(b"unrelated page")
         self.assertIn("content differs", self.check())
+
+    def test_cache_bust_query_is_unique_per_attempt(self) -> None:
+        base = "https://example.org/qr/assets/qr/code.svg"
+        first = cache_busted_url(base, attempt=0, nonce=42)
+        second = cache_busted_url(base, attempt=1, nonce=42)
+        self.assertEqual(first, "https://example.org/qr/assets/qr/code.svg?v=42-0")
+        self.assertEqual(second, "https://example.org/qr/assets/qr/code.svg?v=42-1")
+        self.assertNotEqual(first, second)
+
+    def test_retry_backoff_doubles_until_the_cap(self) -> None:
+        self.assertEqual([retry_delay_seconds(n) for n in range(8)], [1, 2, 4, 8, 16, 32, 60, 60])
 
     def test_allows_only_the_observed_cloudflare_beacon_before_body_end(self) -> None:
         expected = b'<html><body>correct content\n</body>\n</html>\n'
@@ -98,7 +124,51 @@ class DeploymentTests(unittest.TestCase):
     @patch("scripts.verify_deployment.time.sleep")
     @patch("scripts.verify_deployment.urlopen")
     def test_retries_a_propagation_404_then_verifies_the_page(self, fetch, sleep) -> None:
-        fetch.side_effect = [HTTPError("https://example.org/qr/paper/", 404, "missing", {}, None), self.response(b"expected page")]
+        fetch.side_effect = [
+            HTTPError("https://example.org/qr/paper/", 404, "missing", {}, None),
+            self.response(b"expected page"),
+        ]
         self.assertIsNone(self.check(attempts=2))
         self.assertEqual(fetch.call_count, 2)
-        sleep.assert_called_once_with(5)
+        sleep.assert_called_once_with(1)
+        self.assertEqual(
+            [call.args[0].full_url for call in fetch.call_args_list],
+            [
+                "https://example.org/qr/paper/?v=1700000000-0",
+                "https://example.org/qr/paper/?v=1700000000-1",
+            ],
+        )
+
+    @patch("scripts.verify_deployment.time.sleep")
+    @patch("scripts.verify_deployment.urlopen")
+    def test_retries_stale_200_with_backoff_and_fresh_cache_bust(
+        self, fetch, sleep
+    ) -> None:
+        fetch.side_effect = [
+            self.response(b"stale page"),
+            self.response(b"stale page"),
+            self.response(b"expected page"),
+        ]
+        self.assertIsNone(self.check(attempts=3))
+        self.assertEqual(fetch.call_count, 3)
+        self.assertEqual([call.args for call in sleep.call_args_list], [(1,), (2,)])
+        self.assertEqual(
+            [call.args[0].full_url for call in fetch.call_args_list],
+            [
+                "https://example.org/qr/paper/?v=1700000000-0",
+                "https://example.org/qr/paper/?v=1700000000-1",
+                "https://example.org/qr/paper/?v=1700000000-2",
+            ],
+        )
+
+    @patch("scripts.verify_deployment.time.sleep")
+    @patch("scripts.verify_deployment.urlopen")
+    def test_exhausted_stale_retries_still_fail_strictly(self, fetch, sleep) -> None:
+        fetch.return_value = self.response(b"stale page")
+        error = self.check(attempts=3)
+        self.assertIsNotNone(error)
+        assert error is not None
+        self.assertIn("content differs", error)
+        self.assertTrue(error.startswith("https://example.org/qr/paper/:"))
+        self.assertEqual(fetch.call_count, 3)
+        self.assertEqual([call.args for call in sleep.call_args_list], [(1,), (2,)])
