@@ -436,8 +436,13 @@ def validate_inventory(data: dict[str, Any]) -> list[str]:
                 if source_short_url is None:
                     errors.append(f"{location}.source_short_url: active public dynamic entry needs provenance")
                 expected_landing = f"{origin}/{slug}/" if origin and isinstance(slug, str) else None
-                encodes_destination = (
-                    isinstance(destination, str)
+                # Reviewed contact-card cutover only: other active dynamic codes
+                # must keep the first-party slug landing payload.
+                encodes_contact_card = (
+                    slug == "vatsal-sanjay"
+                    and content_type == "vcard"
+                    and not links
+                    and destination == "https://comphy-lab.org/contact-card/"
                     and qr_payload == destination
                     and origin is not None
                     and not is_first_party_url(destination, origin)
@@ -445,11 +450,11 @@ def validate_inventory(data: dict[str, Any]) -> list[str]:
                 if (
                     expected_landing is not None
                     and qr_payload != expected_landing
-                    and not encodes_destination
+                    and not encodes_contact_card
                 ):
                     errors.append(
                         f"{location}.qr_payload: active public dynamic path must be "
-                        f"exactly /{slug}/ or equal its non-first-party destination"
+                        f"exactly /{slug}/ or the reviewed vatsal-sanjay contact-card URL"
                     )
                 if content_type in {"website", "pdf", "vcard"} and destination is None:
                     errors.append(f"{location}.destination: active {content_type} entry needs a destination")

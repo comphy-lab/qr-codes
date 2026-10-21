@@ -101,10 +101,22 @@ class InventoryTests(unittest.TestCase):
         self.assert_error_contains(inventory, "active public dynamic entry needs provenance")
         self.assert_error_contains(
             inventory,
-            "must be exactly /social-hub/ or equal its non-first-party destination",
+            "must be exactly /social-hub/ or the reviewed vatsal-sanjay contact-card URL",
         )
 
-    def test_active_dynamic_may_encode_its_non_first_party_destination(self) -> None:
+    def test_active_dynamic_may_encode_reviewed_vatsal_sanjay_contact_card(self) -> None:
+        inventory = valid_inventory()
+        public = inventory["codes"][0]
+        public.update(
+            slug="vatsal-sanjay",
+            content_type="vcard",
+            destination="https://comphy-lab.org/contact-card/",
+            qr_payload="https://comphy-lab.org/contact-card/",
+            links=[],
+        )
+        self.assertEqual(validate_inventory(inventory), [])
+
+    def test_other_active_dynamic_codes_cannot_encode_an_arbitrary_destination(self) -> None:
         inventory = valid_inventory()
         public = inventory["codes"][0]
         public.update(
@@ -113,7 +125,10 @@ class InventoryTests(unittest.TestCase):
             qr_payload="https://comphy-lab.org/contact-card/",
             links=[],
         )
-        self.assertEqual(validate_inventory(inventory), [])
+        self.assert_error_contains(
+            inventory,
+            "must be exactly /social-hub/ or the reviewed vatsal-sanjay contact-card URL",
+        )
 
     def test_direct_static_requires_equal_public_destination_and_payload(self) -> None:
         inventory = valid_inventory()
