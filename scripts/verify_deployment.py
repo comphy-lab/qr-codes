@@ -93,7 +93,7 @@ def verify_file(
     url = origin.rstrip("/") + "/" + quote(route, safe="/")
     expected = path.read_bytes()
     error = "no attempt made"
-    bust_nonce = int(time.time()) if nonce is None else nonce
+    bust_nonce = time.time_ns() if nonce is None else nonce
     for attempt in range(attempts):
         request_url = cache_busted_url(url, attempt=attempt, nonce=bust_nonce)
         try:
