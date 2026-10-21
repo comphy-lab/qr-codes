@@ -92,24 +92,10 @@ class OutputSafetyTests(unittest.TestCase):
                     document.index("Content-Security-Policy"),
                     document.index('rel="stylesheet"'),
                 )
-                is_redirect = 'http-equiv="refresh"' in document
-                if page.parent != SITE_ROOT and page.parent.name == "vatsal-sanjay":
-                    self.assertTrue(is_redirect)
-                    self.assertIn(
-                        'content="0; url=https://comphy-lab.org/contact-card/"',
-                        document,
-                    )
-                    self.assertIn(
-                        '<link rel="canonical" href="https://comphy-lab.org/contact-card/">',
-                        document,
-                    )
-                    self.assertNotIn("Download PDF", document)
-                    self.assertNotIn('class="qr-panel"', document)
-                else:
-                    self.assertNotIn('http-equiv="refresh"', document)
-                    if page.parent != SITE_ROOT:
-                        self.assertIn("Download PDF", document)
-                        self.assertIn('class="qr-panel"', document)
+                self.assertNotIn('http-equiv="refresh"', document)
+                if page.parent != SITE_ROOT:
+                    self.assertIn("Download PDF", document)
+                    self.assertIn('class="qr-panel"', document)
 
                 parser = ResourceCollector()
                 parser.feed(document)

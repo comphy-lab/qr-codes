@@ -368,7 +368,7 @@ class GenerationTests(unittest.TestCase):
         self.assertNotIn("Continue to the contact card", page)
         self.assertNotIn("First-party route", page)
 
-    def test_dynamic_direct_destination_slug_page_redirects_for_old_prints(self) -> None:
+    def test_dynamic_direct_destination_keeps_downloadable_landing_page(self) -> None:
         inventory = deepcopy(valid_inventory())
         code = inventory["codes"][0]
         destination = "https://comphy-lab.org/contact-card/"
@@ -380,22 +380,20 @@ class GenerationTests(unittest.TestCase):
         )
         outputs = build_outputs(inventory)
         page = outputs.site[PurePosixPath("social-hub/index.html")].decode("utf-8")
+        self.assertNotIn('http-equiv="refresh"', page)
         self.assertIn(
-            f'<meta http-equiv="refresh" content="0; url={destination}">',
+            '<link rel="canonical" href="https://qr.comphy-lab.org/social-hub/">',
             page,
         )
-        self.assertIn(f'<link rel="canonical" href="{destination}">', page)
-        self.assertIn("Continue to the contact card", page)
-        self.assertNotIn("<script", page)
-        self.assertNotIn('download="social-hub.svg"', page)
-        self.assertNotIn('class="qr-panel"', page)
+        self.assertIn('download="social-hub.svg"', page)
+        self.assertIn('download="social-hub.png"', page)
+        self.assertIn('download="social-hub.pdf"', page)
+        self.assertIn('class="qr-panel"', page)
+        self.assertIn("Open contact card", page)
+        self.assertIn(f"<code>{destination}</code>", page)
         self.assertEqual(
             decode_qr_png(outputs.qr[PurePosixPath("social-hub.png")])[0].text,
             destination,
-        )
-        self.assertLess(
-            page.index('http-equiv="Content-Security-Policy"'),
-            page.index('http-equiv="refresh"'),
         )
 
     def test_multi_link_route_keeps_its_collection_and_never_redirects(self) -> None:
