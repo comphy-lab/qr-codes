@@ -29,12 +29,16 @@
 - `private-redacted`: the account entry is counted, but its destination and
   artwork remain outside this public repository.
 
-Every active dynamic replacement uses
-`https://comphy-lab.org/qr-codes/<slug>/` as its stable payload.
-These static, script-free pages preserve the
-ability to update a destination without depending on a paid QR provider; all
-outbound links must be explicit HTTPS URLs. Existing static codes continue to
-encode their canonical destinations directly.
+Active dynamic replacements normally use
+`https://comphy-lab.org/qr-codes/<slug>/` as their stable payload.
+Those static, script-free pages preserve the ability to update a destination
+without depending on a paid QR provider; all outbound links must be explicit
+HTTPS URLs. Existing static codes continue to encode their canonical
+destinations directly. One reviewed exception is the contact-card cutover:
+`vatsal-sanjay` encodes `https://comphy-lab.org/contact-card/` directly, and
+its first-party slug page is a compatibility redirect (meta refresh plus
+canonical plus a plain fallback link, matching the generator's earlier
+single-destination redirect pattern) for codes that were already printed.
 
 Each public, non-paused account code is distributed as a matching SVG, PNG,
 and vector PDF. The PDF is a single square page of the same module runs as the
@@ -42,13 +46,14 @@ SVG, at 12 points per module, written by `scripts/generate.py` without an
 extra PDF package. `resvg-py` remains the SVG rasterizer used by the decoder
 tests; it does not emit PDF. Every such code also has a landing page at
 `site/<slug>/index.html`, published as
-`https://comphy-lab.org/qr-codes/<slug>/`, with the QR panel, SVG/PNG/PDF
-downloads, and any documented outbound links. Those pages do not auto-redirect,
-so the artwork stays downloadable. Direct-static codes still encode their
-external URL; the landing page is where a person downloads that QR. The
-download catalogue links each card title to that page and still offers the
-three files directly. Bespoke branded artwork in `current/` also includes PNG
-derivatives of its SVG sources.
+`https://comphy-lab.org/qr-codes/<slug>/`. Ordinary landing pages keep the QR
+panel, SVG/PNG/PDF downloads, and any documented outbound links, and do not
+auto-redirect, so the artwork stays downloadable. Direct-static codes still
+encode their external URL; the landing page is where a person downloads that
+QR. Compatibility-redirect pages omit the QR panel and downloads (those remain
+on the catalogue). The download catalogue links each card title to that page
+and still offers the three files directly. Bespoke branded artwork in
+`current/` also includes PNG derivatives of its SVG sources.
 
 ## Page presentation
 

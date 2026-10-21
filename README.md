@@ -13,9 +13,11 @@ university logos. Every one of those codes also has a landing page at
 The four [standalone branded codes](current/) also include
 SVG and PNG.
 
-The contact-card replacement is
-[`https://comphy-lab.org/contact-card/`](https://comphy-lab.org/contact-card/),
-which supersedes the third-party dynamic code `https://qrco.de/beQCcR`.
+The contact-card QR (`vatsal-sanjay`) encodes
+[`https://comphy-lab.org/contact-card/`](https://comphy-lab.org/contact-card/)
+directly, superseding the third-party dynamic code `https://qrco.de/beQCcR`.
+The first-party page at `/qr-codes/vatsal-sanjay/` remains as a compatibility
+redirect for codes that were already printed.
 
 ## Catalogue
 

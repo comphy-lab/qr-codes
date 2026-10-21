@@ -256,7 +256,13 @@ def _page_head(
     description: str,
     canonical_url: str,
     css_href: str,
+    redirect_url: str | None = None,
 ) -> str:
+    redirect = (
+        f'  <meta http-equiv="refresh" content="0; url={_escape(redirect_url)}">\n'
+        if redirect_url is not None
+        else ""
+    )
     return (
         "<!doctype html>\n"
         '<html lang="en">\n'
@@ -265,12 +271,36 @@ def _page_head(
         '  <meta name="viewport" content="width=device-width, initial-scale=1">\n'
         f'  <meta http-equiv="Content-Security-Policy" content="{_escape(CSP)}">\n'
         '  <meta name="referrer" content="no-referrer">\n'
-        f"  <title>{_escape(title)}</title>\n"
+        + redirect
+        + f"  <title>{_escape(title)}</title>\n"
         f'  <meta name="description" content="{_escape(description)}">\n'
         f'  <link rel="canonical" href="{_escape(canonical_url)}">\n'
         f'  <link rel="stylesheet" href="{_escape(css_href)}">\n'
         "</head>\n"
     )
+
+
+def _compatibility_redirect_url(code: dict[str, Any], *, origin: str) -> str | None:
+    """Return a destination when the slug page is only a shim for old prints.
+
+    Active dynamic codes normally encode their first-party landing URL so the
+    page can keep downloads and outbound links. When the QR instead encodes the
+    final destination directly, previously printed first-party URLs still need
+    a durable slug page that sends scanners onward. Static direct codes keep a
+    non-redirect download page.
+    """
+
+    destination = code.get("destination")
+    payload = code.get("qr_payload")
+    if (
+        code.get("source_kind") != "dynamic"
+        or not isinstance(destination, str)
+        or payload != destination
+        or is_first_party_url(destination, origin)
+        or code.get("links")
+    ):
+        return None
+    return _validated_https_url(destination, code["slug"])
 
 
 def _external(href: str, label: str, *, css_class: str, aria_label: str) -> str:
@@ -489,8 +519,55 @@ def _landing_url(origin: str, slug: str) -> str:
     return f"{origin.rstrip('/')}/{slug}/"
 
 
+def _redirect_page(code: dict[str, Any], *, destination: str) -> str:
+    """Minimal compatibility shim: meta refresh, canonical, and a plain link."""
+
+    summary = code.get("summary") or code["name"]
+    label = {
+        "website": "Continue to the website",
+        "pdf": "Continue to the PDF",
+        "vcard": "Continue to the contact card",
+        "links": "Continue to the destination",
+    }[code["content_type"]]
+    return (
+        _page_head(
+            title=f"{code['name']} | CoMPhy Lab QR",
+            description=summary,
+            canonical_url=destination,
+            css_href="../assets/style.css",
+            redirect_url=destination,
+        )
+        + "<body>\n"
+        + _site_header(home_href="../", jump_links=False)
+        + '  <main class="shell">\n'
+        + '    <article class="detail">\n'
+        + '      <div class="detail-copy">\n'
+        + f"        <h1>{_escape(code['name'])}</h1>\n"
+        + '        <ul class="actions" role="list">\n'
+        + "          <li>"
+        + _external(
+            destination,
+            label,
+            css_class="pill pill--external",
+            aria_label=f"{label} (opens in a new tab)",
+        )
+        + "</li>\n"
+        + "        </ul>\n"
+        + "      </div>\n"
+        + "    </article>\n"
+        + "  </main>\n"
+        + _site_footer()
+        + "</body>\n"
+        + "</html>\n"
+    )
+
+
 def _code_page(code: dict[str, Any], *, origin: str) -> str:
     """Landing page with the QR, its downloads, and any documented outbound links."""
+
+    redirect_to = _compatibility_redirect_url(code, origin=origin)
+    if redirect_to is not None:
+        return _redirect_page(code, destination=redirect_to)
 
     payload = code["qr_payload"]
     summary = code.get("summary") or code["name"]

@@ -435,10 +435,21 @@ def validate_inventory(data: dict[str, Any]) -> list[str]:
             if source_kind == "dynamic" and source_status == "active":
                 if source_short_url is None:
                     errors.append(f"{location}.source_short_url: active public dynamic entry needs provenance")
-                expected_payload = f"{origin}/{slug}/" if origin and isinstance(slug, str) else None
-                if expected_payload is not None and qr_payload != expected_payload:
+                expected_landing = f"{origin}/{slug}/" if origin and isinstance(slug, str) else None
+                encodes_destination = (
+                    isinstance(destination, str)
+                    and qr_payload == destination
+                    and origin is not None
+                    and not is_first_party_url(destination, origin)
+                )
+                if (
+                    expected_landing is not None
+                    and qr_payload != expected_landing
+                    and not encodes_destination
+                ):
                     errors.append(
-                        f"{location}.qr_payload: active public dynamic path must be exactly /{slug}/"
+                        f"{location}.qr_payload: active public dynamic path must be "
+                        f"exactly /{slug}/ or equal its non-first-party destination"
                     )
                 if content_type in {"website", "pdf", "vcard"} and destination is None:
                     errors.append(f"{location}.destination: active {content_type} entry needs a destination")

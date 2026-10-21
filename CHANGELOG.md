@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-21
+
+- Point the `vatsal-sanjay` QR payload at `https://comphy-lab.org/contact-card/`
+  and keep `/qr-codes/vatsal-sanjay/` as a compatibility redirect for printed
+  codes.
+
 ## 2026-09-08
 
 - Renamed the repository from `comphy-lab/port-qr-codes` to

@@ -368,6 +368,36 @@ class GenerationTests(unittest.TestCase):
         self.assertNotIn("Continue to the contact card", page)
         self.assertNotIn("First-party route", page)
 
+    def test_dynamic_direct_destination_slug_page_redirects_for_old_prints(self) -> None:
+        inventory = deepcopy(valid_inventory())
+        code = inventory["codes"][0]
+        destination = "https://comphy-lab.org/contact-card/"
+        code.update(
+            content_type="vcard",
+            destination=destination,
+            qr_payload=destination,
+            links=[],
+        )
+        outputs = build_outputs(inventory)
+        page = outputs.site[PurePosixPath("social-hub/index.html")].decode("utf-8")
+        self.assertIn(
+            f'<meta http-equiv="refresh" content="0; url={destination}">',
+            page,
+        )
+        self.assertIn(f'<link rel="canonical" href="{destination}">', page)
+        self.assertIn("Continue to the contact card", page)
+        self.assertNotIn("<script", page)
+        self.assertNotIn('download="social-hub.svg"', page)
+        self.assertNotIn('class="qr-panel"', page)
+        self.assertEqual(
+            decode_qr_png(outputs.qr[PurePosixPath("social-hub.png")])[0].text,
+            destination,
+        )
+        self.assertLess(
+            page.index('http-equiv="Content-Security-Policy"'),
+            page.index('http-equiv="refresh"'),
+        )
+
     def test_multi_link_route_keeps_its_collection_and_never_redirects(self) -> None:
         outputs = build_outputs(require_valid_inventory(valid_inventory()))
         page = outputs.site[PurePosixPath("social-hub/index.html")].decode("utf-8")

@@ -99,7 +99,21 @@ class InventoryTests(unittest.TestCase):
         public["source_short_url"] = None
         public["qr_payload"] = "https://qr.comphy-lab.org/a-different-path/"
         self.assert_error_contains(inventory, "active public dynamic entry needs provenance")
-        self.assert_error_contains(inventory, "path must be exactly /social-hub/")
+        self.assert_error_contains(
+            inventory,
+            "must be exactly /social-hub/ or equal its non-first-party destination",
+        )
+
+    def test_active_dynamic_may_encode_its_non_first_party_destination(self) -> None:
+        inventory = valid_inventory()
+        public = inventory["codes"][0]
+        public.update(
+            content_type="vcard",
+            destination="https://comphy-lab.org/contact-card/",
+            qr_payload="https://comphy-lab.org/contact-card/",
+            links=[],
+        )
+        self.assertEqual(validate_inventory(inventory), [])
 
     def test_direct_static_requires_equal_public_destination_and_payload(self) -> None:
         inventory = valid_inventory()
