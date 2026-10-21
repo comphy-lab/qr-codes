@@ -13,9 +13,11 @@ university logos. Every one of those codes also has a landing page at
 The four [standalone branded codes](current/) also include
 SVG and PNG.
 
-The contact-card replacement is
-[`https://comphy-lab.org/contact-card/`](https://comphy-lab.org/contact-card/),
-which supersedes the third-party dynamic code `https://qrco.de/beQCcR`.
+The contact-card QR (`vatsal-sanjay`) encodes
+[`https://comphy-lab.org/contact-card/`](https://comphy-lab.org/contact-card/)
+directly, superseding the third-party dynamic code `https://qrco.de/beQCcR`.
+Its landing page at `/qr-codes/vatsal-sanjay/` stays a normal download page
+with no redirect.
 
 ## Catalogue
 
@@ -94,10 +96,12 @@ and verify the site. GitHub redirects most repository traffic after a rename,
 but excludes Pages project-site URLs; see its
 [repository-renaming guidance](https://docs.github.com/en/repositories/creating-and-managing-repositories/renaming-a-repository).
 
-External destinations are unchanged. The 14 QR codes that used
-`https://comphy-lab.org/port-qr-codes/` now encode the corresponding
-`https://comphy-lab.org/qr-codes/` routes. Replace artwork that encodes the old
-path; GitHub does not provide a redirect for the old Pages URLs.
+External destinations are unchanged. Thirteen of the fourteen active dynamic
+replacements that used `https://comphy-lab.org/port-qr-codes/` now encode the
+corresponding `https://comphy-lab.org/qr-codes/` routes; `vatsal-sanjay`
+encodes `https://comphy-lab.org/contact-card/` directly. Replace artwork that
+encodes the old path; GitHub does not provide a redirect for the old Pages
+URLs.
 An already printed dynamic code still contains its old payload, so publishing a
 replacement cannot alter the printed image. Replace former
 `qr.comphy-lab.org` artwork with the corresponding files under

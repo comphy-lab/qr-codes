@@ -325,7 +325,7 @@
       "visibility": "public",
       "source_short_url": "https://qrco.de/beQCcR",
       "destination": "https://comphy-lab.org/contact-card/",
-      "qr_payload": "https://comphy-lab.org/qr-codes/vatsal-sanjay/",
+      "qr_payload": "https://comphy-lab.org/contact-card/",
       "migration_status": "replacement-ready",
       "summary": "CoMPhy Lab contact card with vCard download."
     },

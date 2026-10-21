@@ -51,6 +51,7 @@ class OutputSafetyTests(unittest.TestCase):
 
     def test_account_snapshot_has_14_owned_dynamic_routes(self) -> None:
         inventory = load_valid_inventory(INVENTORY_PATH)
+        origin = inventory["first_party_origin"]
         active_dynamic = [
             code
             for code in inventory["codes"]
@@ -59,14 +60,15 @@ class OutputSafetyTests(unittest.TestCase):
             and code["source_status"] == "active"
         ]
         self.assertEqual(len(active_dynamic), 14)
-        self.assertTrue(
-            all(
-                is_first_party_url(
-                    code["qr_payload"], inventory["first_party_origin"]
-                )
-                for code in active_dynamic
-            )
-        )
+        direct_destination = []
+        for code in active_dynamic:
+            payload = code["qr_payload"]
+            if is_first_party_url(payload, origin):
+                continue
+            self.assertEqual(payload, code["destination"])
+            self.assertFalse(is_first_party_url(payload, origin))
+            direct_destination.append(code["slug"])
+        self.assertEqual(direct_destination, ["vatsal-sanjay"])
 
     def test_generated_html_has_no_active_content_or_third_party_assets(self) -> None:
         self.assertTrue(SITE_ROOT.is_dir(), "generated site/ directory is missing")
