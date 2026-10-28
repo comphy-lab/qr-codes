@@ -9,7 +9,7 @@ from typing import Any
 from urllib.parse import parse_qsl, urlsplit
 
 
-EXPECTED_CODE_COUNT = 74
+EXPECTED_CODE_COUNT = 76
 SOURCE_KINDS = frozenset({"dynamic", "static"})
 SOURCE_STATUSES = frozenset({"active", "paused", "static"})
 CONTENT_TYPES = frozenset({"website", "links", "pdf", "vcard"})

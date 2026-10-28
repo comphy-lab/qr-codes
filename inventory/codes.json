@@ -817,6 +817,34 @@
       "migration_status": "direct-static"
     },
     {
+      "id": "90011065",
+      "slug": "virial-identity",
+      "name": "Atomic note: Virial identity",
+      "folder": "Teaching",
+      "source_kind": "static",
+      "source_status": "static",
+      "content_type": "website",
+      "visibility": "public",
+      "source_short_url": null,
+      "destination": "https://blogs.comphy-lab.org/_AtomicNotes/Virial-identity",
+      "qr_payload": "https://blogs.comphy-lab.org/_AtomicNotes/Virial-identity",
+      "migration_status": "direct-static"
+    },
+    {
+      "id": "90011066",
+      "slug": "intro-soft-matter-2026-repository",
+      "name": "Intro Soft Matter 2026: assessment repository",
+      "folder": "Teaching",
+      "source_kind": "static",
+      "source_status": "static",
+      "content_type": "website",
+      "visibility": "public",
+      "source_short_url": null,
+      "destination": "https://github.com/comphy-lab/Intro-Soft-Matter-2026",
+      "qr_payload": "https://github.com/comphy-lab/Intro-Soft-Matter-2026",
+      "migration_status": "direct-static"
+    },
+    {
       "id": "75146938",
       "slug": "gauss",
       "name": "Gauss",
